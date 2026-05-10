@@ -29,12 +29,12 @@ def rotate(tetromino, clockwise=True):
     else:
         return np.rot90(tetromino, 1)
 
-def draw_block(tetromino, x, y, color):
+def draw_block(tetromino, start_x, start_y, color):
     for row in range(tetromino.shape[0]):
         for col in range(tetromino.shape[1]):
             if tetromino[row, col] == 1:
-                top_left = ((x + col) * unit_size, (y + row) * unit_size)
-                bottom_right = ((x + col + 1) * unit_size, (y + row + 1) * unit_size)
+                top_left = ((start_x + col) * unit_size, (start_y + row) * unit_size)
+                bottom_right = ((start_x + col + 1) * unit_size, (start_y + row + 1) * unit_size)
                 cv.rectangle(tetris_display, top_left, bottom_right, color, thickness=-1)
 
 # BOARD GAME
@@ -50,7 +50,7 @@ for i in range (h + 1):
             (2 * unit_size, (2 + i) * unit_size), 
             ((2 + w) * unit_size, (2 + i) * unit_size), 
             line_color, thickness=1)
-
+draw_block(tetrominoes[0], xi, yi, (0, 255, 0)) # draw the first tetromino at the initial position
 cv.imshow('Tetris Display', tetris_display)
 cv.waitKey(0)
 cv.destroyAllWindows()
