@@ -1,7 +1,5 @@
 import cv2 as cv
 import numpy as np
-import time
-import keyboard
 
 # INITIAL CONSTANTS
 h = 20 # height of the game board in cells
@@ -23,52 +21,12 @@ tetrominoes =   [np.array([[1, 1, 1, 1]]),
                 np.array([[0, 1, 1], [1, 1, 0]])
                 ]
 
-
-# GAME FUNCTIONS
-def rotate(tetromino, clockwise=True):
-    if clockwise:
-        return np.rot90(tetromino, -1)
-    else:
-        return np.rot90(tetromino, 1)
-
-def draw_block(tetromino, start_x, start_y, color):
-    for row in range(tetromino.shape[0]):
-        for col in range(tetromino.shape[1]):
-            if tetromino[row, col] == 1:
-                top_left = ((start_x + col) * unit_size, (start_y + row) * unit_size)
-                bottom_right = ((start_x + col + 1) * unit_size, (start_y + row + 1) * unit_size)
-                cv.rectangle(tetris_display, top_left, bottom_right, color, thickness=-1)
-
-# NAVIGATION
-def left(tetromino, x, y):
-    return (tetromino, x - 1, y)
-
-def right(tetromino, x, y):
-    return (tetromino, x + 1, y)
-
-def down(tetromino, x, y):
-    return (tetromino, x, y + 1)
-
-def up(tetromino, x, y):
-    tetromino = rotate(tetromino)
-    return (tetromino, x, y)
-
-
-# KEYBOARD CONTROLS
-def on_press(event):
-    if event.name == 'left':
-        tetromino, x, y = left(tetromino, x, y)
-    elif event.name == 'right':
-        tetromino, x, y = right(tetromino, x, y)
-    elif event.name == 'up':
-        tetromino, x, y = up(tetromino, x, y)
-    elif event.name == 'down':
-        tetromino, x, y = down(tetromino, x, y)
-keyboard.on_press(on_press)
-
 # BOARD GAME
-tetris_display = np.full(((h + 2 * y_offset) * unit_size, (w + 2 * x_offset) * unit_size, 3), bg_color, dtype=np.uint8)
-cv.rectangle(tetris_display, (x_offset * unit_size, y_offset * unit_size), ((x_offset + w) * unit_size, (y_offset + h) * unit_size), game_bg_color, thickness=-1)
+
+def display_board():
+    global tetris_display
+    tetris_display = np.full(((h + 2 * y_offset) * unit_size, (w + 2 * x_offset) * unit_size, 3), bg_color, dtype=np.uint8)
+    cv.rectangle(tetris_display, (x_offset * unit_size, y_offset * unit_size), ((x_offset + w) * unit_size, (y_offset + h) * unit_size), game_bg_color, thickness=-1)
 
 def draw_grid():
     for i in range (w + 1):
@@ -82,16 +40,57 @@ def draw_grid():
                 ((x_offset + w) * unit_size, (y_offset + i) * unit_size), 
                 line_color, thickness=1)
 
-choice = np.random.randint(0, len(tetrominoes)) # random tetromino
+def draw_block(tetromino, start_x, start_y, color):
+    for row in range(tetromino.shape[0]):
+        for col in range(tetromino.shape[1]):
+            if tetromino[row, col] == 1:
+                top_left = ((start_x + col) * unit_size, (start_y + row) * unit_size)
+                bottom_right = ((start_x + col + 1) * unit_size, (start_y + row + 1) * unit_size)
+                cv.rectangle(tetris_display, top_left, bottom_right, color, thickness=-1)
 
+
+# NAVIGATION
+
+def navigation(tetromino, x, y, key):
+    if key == ord('left') and x > x_offset * unit_size:
+        return (tetromino, x - 1, y)
+    elif key == ord('right') and x < (x_offset + w - tetromino.shape[1]) * unit_size:
+        return (tetromino, x + 1, y)
+    elif key == ord('up'):
+        return (np.rot90(tetromino, -1), x, y)
+    elif key == ord('down') and y < (y_offset + h - tetromino.shape[0]) * unit_size:
+        return (tetromino, x, y + 1)
+    else:
+        return (tetromino, x, y)
+
+
+# random choice of tetromino and starting position
+choice = np.random.randint(0, len(tetrominoes)) # random tetromino
 xi = np.random.randint(x_offset, x_offset + w - tetrominoes[choice].shape[1] + 1) # random x position for the tetromino
 yi = y_offset # start at the top of the board
+
+
+tetromino = tetrominoes[choice]
+x, y = xi, yi
+
+keyboard.on_press(on_press)
+
+while True:
+
+    display_board()
+    draw_block(tetromino, x, y, (0, 255, 0))
+    draw_grid()
+    cv.imshow('Tetris Display', tetris_display)
+    key = cv.waitKey(100)
+    tetromino, x, y = navigation(tetromino, x, y, key)
+    y += 1
+
 
 for i in range (h - tetrominoes[choice].shape[0]):
     draw_block(tetrominoes[choice], xi, yi + i, (0, 255, 0))
     draw_grid()
     cv.imshow('Tetris Display', tetris_display)
     cv.waitKey(2000)
-    keyboard.on_press(on_press)
-    draw_block(tetrominoes[choice], xi, yi + i, (0, 0, 0))
+    tetromino, x, y = tetrominoes[choice], xi, yi + i
+    draw_block(tetromino, x, y, (0, 0, 0))
 
