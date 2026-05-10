@@ -39,17 +39,31 @@ def draw_block(tetromino, start_x, start_y, color):
                 bottom_right = ((start_x + col + 1) * unit_size, (start_y + row + 1) * unit_size)
                 cv.rectangle(tetris_display, top_left, bottom_right, color, thickness=-1)
 
+# NAVIGATION
+def left(tetromino, x, y):
+    return (tetromino, x - 1, y)
+
+def right(tetromino, x, y):
+    return (tetromino, x + 1, y)
+
+def down(tetromino, x, y):
+    return (tetromino, x, y + 1)
+
+def up(tetromino, x, y):
+    tetromino = rotate(tetromino)
+    return (tetromino, x, y)
+
 
 # KEYBOARD CONTROLS
 def on_press(event):
     if event.name == 'left':
-        print("Left arrow pressed")
+        tetromino, x, y = left(tetromino, x, y)
     elif event.name == 'right':
-        print("Right arrow pressed")
+        tetromino, x, y = right(tetromino, x, y)
     elif event.name == 'up':
-        print("Up arrow pressed")
+        tetromino, x, y = up(tetromino, x, y)
     elif event.name == 'down':
-        print("Down arrow pressed")
+        tetromino, x, y = down(tetromino, x, y)
 keyboard.on_press(on_press)
 
 # BOARD GAME
