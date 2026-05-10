@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 import time
+import keyboard
 
 # INITIAL CONSTANTS
 h = 20 # height of the game board in cells
@@ -10,6 +11,7 @@ bg_color = (200, 200, 200) # display background
 game_bg_color = (0, 0, 0) # tetris game background
 line_color = (255, 0, 0) # grid lines
 x_offset, y_offset = 2, 2 # initial x, y of start of grid
+board_matrix = np.zeros((h, w), dtype=int) # game board matrix
 
 # TETROMINO SHAPES
 tetrominoes =   [np.array([[1, 1, 1, 1]]), 
@@ -37,6 +39,19 @@ def draw_block(tetromino, start_x, start_y, color):
                 bottom_right = ((start_x + col + 1) * unit_size, (start_y + row + 1) * unit_size)
                 cv.rectangle(tetris_display, top_left, bottom_right, color, thickness=-1)
 
+
+# KEYBOARD CONTROLS
+def on_press(event):
+    if event.name == 'left':
+        print("Left arrow pressed")
+    elif event.name == 'right':
+        print("Right arrow pressed")
+    elif event.name == 'up':
+        print("Up arrow pressed")
+    elif event.name == 'down':
+        print("Down arrow pressed")
+keyboard.on_press(on_press)
+
 # BOARD GAME
 tetris_display = np.full(((h + 2 * y_offset) * unit_size, (w + 2 * x_offset) * unit_size, 3), bg_color, dtype=np.uint8)
 cv.rectangle(tetris_display, (x_offset * unit_size, y_offset * unit_size), ((x_offset + w) * unit_size, (y_offset + h) * unit_size), game_bg_color, thickness=-1)
@@ -63,5 +78,6 @@ for i in range (h - tetrominoes[choice].shape[0]):
     draw_grid()
     cv.imshow('Tetris Display', tetris_display)
     cv.waitKey(2000)
+    keyboard.on_press(on_press)
     draw_block(tetrominoes[choice], xi, yi + i, (0, 0, 0))
 
