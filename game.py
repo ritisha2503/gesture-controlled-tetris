@@ -9,7 +9,7 @@ unit_size = 25 # cell size in pixels
 bg_color = (200, 200, 200) # display background
 game_bg_color = (0, 0, 0) # tetris game background
 line_color = (255, 0, 0) # grid lines
-xi, yi = 2, 2 # initial x, y
+x_offset, y_offset = 2, 2 # initial x, y of start of grid
 
 # TETROMINO SHAPES
 tetrominoes =   [np.array([[1, 1, 1, 1]]), 
@@ -38,19 +38,30 @@ def draw_block(tetromino, start_x, start_y, color):
                 cv.rectangle(tetris_display, top_left, bottom_right, color, thickness=-1)
 
 # BOARD GAME
-tetris_display = np.full(((h+4) * unit_size, (w + 4) * unit_size, 3), bg_color, dtype=np.uint8)
-cv.rectangle(tetris_display, (2 * unit_size, 2 * unit_size), ((2 + w) * unit_size, (2 + h) * unit_size), game_bg_color, thickness=-1)
-for i in range (w + 1):
-    cv.line(tetris_display, 
-            ((2 + i) * unit_size, 2 * unit_size), 
-            ((2 + i) * unit_size, (2 + h) * unit_size), 
-            line_color, thickness=1)
-for i in range (h + 1):
-    cv.line(tetris_display, 
-            (2 * unit_size, (2 + i) * unit_size), 
-            ((2 + w) * unit_size, (2 + i) * unit_size), 
-            line_color, thickness=1)
-draw_block(tetrominoes[0], xi, yi, (0, 255, 0)) # draw the first tetromino at the initial position
-cv.imshow('Tetris Display', tetris_display)
-cv.waitKey(0)
-cv.destroyAllWindows()
+tetris_display = np.full(((h + 2 * y_offset) * unit_size, (w + 2 * x_offset) * unit_size, 3), bg_color, dtype=np.uint8)
+cv.rectangle(tetris_display, (x_offset * unit_size, y_offset * unit_size), ((x_offset + w) * unit_size, (y_offset + h) * unit_size), game_bg_color, thickness=-1)
+
+def draw_grid():
+    for i in range (w + 1):
+        cv.line(tetris_display, 
+                ((x_offset + i) * unit_size, y_offset * unit_size), 
+                ((x_offset + i) * unit_size, (y_offset + h) * unit_size), 
+                line_color, thickness=1)
+    for i in range (h + 1):
+        cv.line(tetris_display, 
+                (x_offset * unit_size, (y_offset + i) * unit_size), 
+                ((x_offset + w) * unit_size, (y_offset + i) * unit_size), 
+                line_color, thickness=1)
+
+choice = np.random.randint(0, len(tetrominoes)) # random tetromino
+
+xi = np.random.randint(x_offset, x_offset + w - tetrominoes[choice].shape[1] + 1) # random x position for the tetromino
+yi = y_offset # start at the top of the board
+
+for i in range (h - tetrominoes[choice].shape[0]):
+    draw_block(tetrominoes[choice], xi, yi + i, (0, 255, 0))
+    draw_grid()
+    cv.imshow('Tetris Display', tetris_display)
+    cv.waitKey(2000)
+    draw_block(tetrominoes[choice], xi, yi + i, (0, 0, 0))
+
