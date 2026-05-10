@@ -11,13 +11,22 @@ game_bg_color = (0, 0, 0)
 line_color = (255, 0, 0)
 
 # TETROMINO SHAPES
-tetrominoes = [np.array([[1, 1, 1, 1]]), 
-np.array([[1, 1], [1, 1]]), 
-np.array([[0, 1, 0], [1, 1, 1]]),
-np.array([[1, 0, 0], [1, 1, 1]]),
-np.array([[0, 0, 1], [1, 1, 1]]),
-np.array([[1, 1, 0], [0, 1, 1]]),
-np.array([[0, 1, 1], [1, 1, 0]])]
+tetrominoes =   [np.array([[1, 1, 1, 1]]), 
+                np.array([[1, 1], [1, 1]]), 
+                np.array([[0, 1, 0], [1, 1, 1]]),
+                np.array([[1, 0, 0], [1, 1, 1]]),
+                np.array([[0, 0, 1], [1, 1, 1]]),
+                np.array([[1, 1, 0], [0, 1, 1]]),
+                np.array([[0, 1, 1], [1, 1, 0]])
+                ]
+
+
+# GAME FUNCTIONS
+def rotate(tetromino, clockwise=True):
+    if clockwise:
+        return np.rot90(tetromino, -1)
+    else:
+        return np.rot90(tetromino, 1)
 
 # BOARD GAME
 tetris_display = np.full(((h+4) * unit_size, (w + 4) * unit_size, 3), bg_color, dtype=np.uint8)
