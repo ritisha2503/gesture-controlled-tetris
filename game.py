@@ -3,12 +3,13 @@ import numpy as np
 import time
 
 # INITIAL CONSTANTS
-h = 20
-w = 16
-unit_size = 25
-bg_color = (200, 200, 200)
-game_bg_color = (0, 0, 0)
-line_color = (255, 0, 0)
+h = 20 # height of the game board in cells
+w = 16 # width of the game board in cells
+unit_size = 25 # cell size in pixels
+bg_color = (200, 200, 200) # display background
+game_bg_color = (0, 0, 0) # tetris game background
+line_color = (255, 0, 0) # grid lines
+xi, yi = 2, 2 # initial x, y
 
 # TETROMINO SHAPES
 tetrominoes =   [np.array([[1, 1, 1, 1]]), 
@@ -27,6 +28,8 @@ def rotate(tetromino, clockwise=True):
         return np.rot90(tetromino, -1)
     else:
         return np.rot90(tetromino, 1)
+
+def draw_block()
 
 # BOARD GAME
 tetris_display = np.full(((h+4) * unit_size, (w + 4) * unit_size, 3), bg_color, dtype=np.uint8)
