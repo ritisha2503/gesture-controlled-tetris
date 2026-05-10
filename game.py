@@ -29,7 +29,13 @@ def rotate(tetromino, clockwise=True):
     else:
         return np.rot90(tetromino, 1)
 
-def draw_block()
+def draw_block(tetromino, x, y, color):
+    for row in range(tetromino.shape[0]):
+        for col in range(tetromino.shape[1]):
+            if tetromino[row, col] == 1:
+                top_left = ((x + col) * unit_size, (y + row) * unit_size)
+                bottom_right = ((x + col + 1) * unit_size, (y + row + 1) * unit_size)
+                cv.rectangle(tetris_display, top_left, bottom_right, color, thickness=-1)
 
 # BOARD GAME
 tetris_display = np.full(((h+4) * unit_size, (w + 4) * unit_size, 3), bg_color, dtype=np.uint8)
