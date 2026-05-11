@@ -97,7 +97,7 @@ cap = cv.VideoCapture(0)
 previous_x, previous_y = [0] * 21, [0] * 21
 
 last_gesture_time = 0
-cooldown = 0.25
+cooldown = 0.5
 
 def get_gesture():
     global previous_x, previous_y, last_gesture_time
