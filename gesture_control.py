@@ -21,31 +21,6 @@ FONT_SIZE = 0.5
 FONT_THICKNESS = 1
 HANDEDNESS_TEXT_COLOR = (88, 205, 54)
 
-# LANDMARK NAMES
-landmark_names = [
-    "WRIST",
-    "THUMB_CMC",
-    "THUMB_MCP",
-    "THUMB_IP",
-    "THUMB_TIP",
-    "INDEX_FINGER_MCP",
-    "INDEX_FINGER_PIP",
-    "INDEX_FINGER_DIP",
-    "INDEX_FINGER_TIP",
-    "MIDDLE_FINGER_MCP",
-    "MIDDLE_FINGER_PIP",
-    "MIDDLE_FINGER_DIP",
-    "MIDDLE_FINGER_TIP",
-    "RING_FINGER_MCP",
-    "RING_FINGER_PIP",
-    "RING_FINGER_DIP",
-    "RING_FINGER_TIP",
-    "PINKY_MCP",
-    "PINKY_PIP",
-    "PINKY_DIP",
-    "PINKY_TIP"
-]
-
 # DRAW FUNCTION
 def draw_landmarks_on_image(rgb_image, detection_result):
     annotated_image = np.copy(rgb_image)
@@ -68,7 +43,7 @@ def draw_landmarks_on_image(rgb_image, detection_result):
             px = int(landmark.x * width)
             py = int(landmark.y * height)
             cv.circle(annotated_image, (px, py), 4, (0, 255, 255), -1)
-            coordinate_text = f"{i}: {landmark_names[i]} : ({px}, {py})"
+            coordinate_text = f"{i} : ({px}, {py})"
             cv.putText(annotated_image, coordinate_text, (px + 5, py - 5), cv.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 255), 1)
     return annotated_image, x_coordinates, y_coordinates
 
@@ -104,19 +79,18 @@ def get_gesture():
 
     if not cap.isOpened():
         print("Error: Could not open camera")
-        return None  
+        return None, np.zeros((480, 640, 3), dtype=np.uint8)
     ret, frame = cap.read()
     if not ret:
         print("Error: Could not read frame")
-        return None
+        return None, np.zeros((480, 640, 3), dtype=np.uint8),  np.zeros((480, 640, 3), dtype=np.uint8)
     frame = cv.flip(frame, 1)
     rgb_frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
     detection_result = detector.detect(mp_image)
     if len(detection_result.hand_landmarks) == 0:
-        cv.imshow('Hand Landmarks', cv.cvtColor(rgb_frame, cv.COLOR_RGB2BGR))
-        cv.waitKey(1)
-        return None
+        previous_x[:], previous_y[:] = [0] * 21,  [0] * 21
+        return None, cv.cvtColor(rgb_frame, cv.COLOR_RGB2BGR)
     annotated_image, x_coordinates, y_coordinates = draw_landmarks_on_image(rgb_frame, detection_result)
     gesture = gesture_detection(x_coordinates, y_coordinates, previous_x, previous_y)
     current_time = time.time()
@@ -124,7 +98,7 @@ def get_gesture():
     if gesture and (current_time - last_gesture_time) > cooldown:
         output_gesture = gesture
         last_gesture_time = current_time
-    cv.imshow('Hand Landmarks', cv.cvtColor(annotated_image, cv.COLOR_RGB2BGR))
+    webcam_frame = cv.cvtColor(annotated_image, cv.COLOR_RGB2BGR)
     cv.waitKey(1)
     previous_x, previous_y = x_coordinates.copy(), y_coordinates.copy()
-    return output_gesture
+    return output_gesture, webcam_frame

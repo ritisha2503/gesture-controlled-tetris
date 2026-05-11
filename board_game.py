@@ -9,6 +9,12 @@ bg_color = (200, 200, 200) # display background
 game_bg_color = (0, 0, 0) # tetris game background
 line_color = (255, 0, 0) # grid lines
 x_offset, y_offset = 2, 2 # initial x, y of start of grid
+webcam_x1 = 20 * unit_size
+webcam_y1 = 13 * unit_size
+webcam_x2 = 32 * unit_size
+webcam_y2 = 22 * unit_size
+webcam_width = webcam_x2 - webcam_x1
+webcam_height = webcam_y2 - webcam_y1
 
 
 # MAIN GAME MARIX
@@ -34,9 +40,25 @@ block_colors = [
 ]
 
 def display_board():
+
     global tetris_display
-    tetris_display = np.full(((h + 2 * y_offset) * unit_size, (w + 2 * x_offset) * unit_size, 3), bg_color, dtype=np.uint8)
-    cv.rectangle(tetris_display, (x_offset * unit_size, y_offset * unit_size), ((x_offset + w) * unit_size, (y_offset + h) * unit_size), game_bg_color, thickness=-1)
+
+    display_width = 34 * unit_size
+    display_height = 24 * unit_size
+
+    tetris_display = np.full((display_height, display_width, 3), bg_color, dtype=np.uint8)
+
+    board_start_x = x_offset * unit_size
+    board_start_y = y_offset * unit_size
+
+    board_end_x = (x_offset + w) * unit_size
+    board_end_y = (y_offset + h) * unit_size
+
+    cv.rectangle(tetris_display,(board_start_x, board_start_y), (board_end_x, board_end_y), game_bg_color, thickness=-1)
+    cv.rectangle(tetris_display, (board_start_x, board_start_y), (board_end_x, board_end_y), (0, 0, 0), thickness=2)
+
+    cv.putText(tetris_display, "TETRIS", (20 * unit_size, 5 * unit_size), cv.FONT_HERSHEY_DUPLEX, 3, (0, 0, 0), 5)
+    cv.putText(tetris_display, "Score:", (22 * unit_size, 9 * unit_size), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
     return tetris_display
 
 def draw_grid():
