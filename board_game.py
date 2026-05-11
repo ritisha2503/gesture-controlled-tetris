@@ -58,7 +58,7 @@ def display_board():
     cv.rectangle(tetris_display, (board_start_x, board_start_y), (board_end_x, board_end_y), (0, 0, 0), thickness=2)
 
     cv.putText(tetris_display, "TETRIS", (20 * unit_size, 5 * unit_size), cv.FONT_HERSHEY_DUPLEX, 3, (0, 0, 0), 5)
-    cv.putText(tetris_display, "Score:", (22 * unit_size, 9 * unit_size), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+    cv.putText(tetris_display, f"Score: {score}", (22 * unit_size, 9 * unit_size), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
     return tetris_display
 
 def draw_grid():
@@ -109,6 +109,18 @@ def place_tetromino(tetromino, x, y, color_index): # place tetromino on board
         for col in range(tetromino.shape[1]):
             if tetromino[row, col] == 1:
                 board_matrix[y + row, x + col] = color_index + 1
+
+def clear_lines():
+    global board_matrix
+    full_rows = []
+    for row in range(h):
+        if 0 not in board_matrix[row]:
+            full_rows.append(row)
+    for row in full_rows:
+        board_matrix = np.delete(board_matrix, row, axis=0)
+        new_row = np.zeros((1, w), dtype=int)
+        board_matrix = np.vstack((new_row, board_matrix))
+    return len(full_rows)
 
 def new_piece(): # random choice of new tetromino
     tetromino = tetrominoes[np.random.randint(len(tetrominoes))]

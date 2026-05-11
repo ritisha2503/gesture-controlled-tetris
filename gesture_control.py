@@ -102,3 +102,6 @@ def get_gesture():
     cv.waitKey(1)
     previous_x, previous_y = x_coordinates.copy(), y_coordinates.copy()
     return output_gesture, webcam_frame
+
+def cleanup():
+    cap.release()
