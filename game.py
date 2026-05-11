@@ -9,7 +9,9 @@ bg_color = (200, 200, 200) # display background
 game_bg_color = (0, 0, 0) # tetris game background
 line_color = (255, 0, 0) # grid lines
 x_offset, y_offset = 2, 2 # initial x, y of start of grid
-board_matrix = np.zeros((h, w), dtype=int) # game board matrix
+
+# MAIN GAME MARIX
+board_matrix = np.zeros((h, w), dtype=int)
 
 # TETROMINO SHAPES
 tetrominoes =   [np.array([[1, 1, 1, 1]]), 
@@ -52,13 +54,13 @@ def draw_block(tetromino, start_x, start_y, color):
 # NAVIGATION
 
 def navigation(tetromino, x, y, key):
-    if key == ord('left') and x > x_offset * unit_size:
+    if key == 2424832 and x > x_offset:
         return (tetromino, x - 1, y)
-    elif key == ord('right') and x < (x_offset + w - tetromino.shape[1]) * unit_size:
+    elif key == 2555904 and x < (x_offset + w - tetromino.shape[1]):
         return (tetromino, x + 1, y)
-    elif key == ord('up'):
+    elif key == 2490368:
         return (np.rot90(tetromino, -1), x, y)
-    elif key == ord('down') and y < (y_offset + h - tetromino.shape[0]) * unit_size:
+    elif key == 2621440 and y < (y_offset + h - tetromino.shape[0]):
         return (tetromino, x, y + 1)
     else:
         return (tetromino, x, y)
@@ -73,24 +75,13 @@ yi = y_offset # start at the top of the board
 tetromino = tetrominoes[choice]
 x, y = xi, yi
 
-keyboard.on_press(on_press)
-
 while True:
 
     display_board()
     draw_block(tetromino, x, y, (0, 255, 0))
     draw_grid()
     cv.imshow('Tetris Display', tetris_display)
-    key = cv.waitKey(100)
+    key = cv.waitKeyEx(1000)
     tetromino, x, y = navigation(tetromino, x, y, key)
     y += 1
-
-
-for i in range (h - tetrominoes[choice].shape[0]):
-    draw_block(tetrominoes[choice], xi, yi + i, (0, 255, 0))
-    draw_grid()
-    cv.imshow('Tetris Display', tetris_display)
-    cv.waitKey(2000)
-    tetromino, x, y = tetrominoes[choice], xi, yi + i
-    draw_block(tetromino, x, y, (0, 0, 0))
 
