@@ -1,5 +1,6 @@
 import cv2 as cv
 import numpy as np
+import time
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
@@ -69,26 +70,61 @@ def draw_landmarks_on_image(rgb_image, detection_result):
             cv.circle(annotated_image, (px, py), 4, (0, 255, 255), -1)
             coordinate_text = f"{i}: {landmark_names[i]} : ({px}, {py})"
             cv.putText(annotated_image, coordinate_text, (px + 5, py - 5), cv.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 255), 1)
-    return annotated_image
+    return annotated_image, x_coordinates, y_coordinates
+
+
+def gesture_detection(x_coordinates, y_coordinates, previous_x, previous_y):
+    dx = x_coordinates[8] - previous_x[8]
+    dy = y_coordinates[0] - previous_y[0]
+    index_x = x_coordinates[8]
+    index_up = y_coordinates[8] < y_coordinates[6]
+    middle_up = y_coordinates[12] < y_coordinates[10]
+    if index_up and middle_up:
+        return "CCW_ROTATE"
+    if index_up and not middle_up:
+        return "CW_ROTATE"
+    if index_x < 0.35:
+        return "LEFT" 
+    if index_x > 0.65:
+        return "RIGHT"
+    if dy > 0.015:
+        return "DOWN"
+    return None
 
 # WEBCAM
 cap = cv.VideoCapture(0)
-if not cap.isOpened():
-    print("Error: Could not open camera")
-    exit()
-while True:
+
+previous_x, previous_y = [0] * 21, [0] * 21
+
+last_gesture_time = 0
+cooldown = 0.25
+
+def get_gesture():
+    global previous_x, previous_y, last_gesture_time
+
+    if not cap.isOpened():
+        print("Error: Could not open camera")
+        return None  
     ret, frame = cap.read()
     if not ret:
         print("Error: Could not read frame")
-        break
+        return None
     frame = cv.flip(frame, 1)
     rgb_frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
     detection_result = detector.detect(mp_image)
-    annotated_image = draw_landmarks_on_image(rgb_frame, detection_result)
+    if len(detection_result.hand_landmarks) == 0:
+        cv.imshow('Hand Landmarks', cv.cvtColor(rgb_frame, cv.COLOR_RGB2BGR))
+        cv.waitKey(1)
+        return None
+    annotated_image, x_coordinates, y_coordinates = draw_landmarks_on_image(rgb_frame, detection_result)
+    gesture = gesture_detection(x_coordinates, y_coordinates, previous_x, previous_y)
+    current_time = time.time()
+    output_gesture = None
+    if gesture and (current_time - last_gesture_time) > cooldown:
+        output_gesture = gesture
+        last_gesture_time = current_time
     cv.imshow('Hand Landmarks', cv.cvtColor(annotated_image, cv.COLOR_RGB2BGR))
-    if cv.waitKey(1) == ord('q'):
-        break
-
-cap.release()
-cv.destroyAllWindows()
+    cv.waitKey(1)
+    previous_x, previous_y = x_coordinates.copy(), y_coordinates.copy()
+    return output_gesture
