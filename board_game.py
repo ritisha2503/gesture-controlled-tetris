@@ -39,7 +39,7 @@ block_colors = [
     (0, 165, 255)     # orange
 ]
 
-def display_board():
+def display_board(score):
 
     global tetris_display
 
