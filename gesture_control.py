@@ -30,13 +30,13 @@ RING_TIP = 16
 PINKY_TIP = 20
 
 # Thresholds for gesture detection
-HAND_X_LEFT_THRESHOLD = 0.35      # Left side of screen
-HAND_X_RIGHT_THRESHOLD = 0.65     # Right side of screen
+HAND_X_LEFT_THRESHOLD = 0.35
+HAND_X_RIGHT_THRESHOLD = 0.65
 HAND_X_CENTER_MIN = 0.35
 HAND_X_CENTER_MAX = 0.65
 
 # Gesture cooldown (prevent spam)
-GESTURE_COOLDOWN = 0.3  # seconds
+GESTURE_COOLDOWN = 0.2  # seconds
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -142,47 +142,84 @@ def draw_landmarks_on_image(rgb_image, detection_result):
 
 
 # ============================================================================
-# GESTURE DETECTION
+# GESTURE DETECTION WITH STATE TRACKING
 # ============================================================================
 
-def gesture_detection(landmarks, previous_landmarks, hand_x, hand_y_delta):
-    """
-    Detect gestures based on hand position and finger configuration.
+class GestureState:
+    """Track gesture state to prevent rapid re-triggering"""
+    def __init__(self):
+        self.last_gesture = None
+        self.last_gesture_time = 0
+        self.gesture_active = False
+        self.required_reset = False  # Must make fist to reset
     
-    Gestures:
-    - LEFT: Fist on left side of screen
-    - RIGHT: Fist on right side of screen
-    - DOWN: Open palm or moving hand downward
-    - CW_ROTATE: Peace sign (2 fingers up)
-    - CCW_ROTATE: Open palm + moving up (all fingers)
-    """
-    
-    fist = is_fist(landmarks)
-    palm = is_open_palm(landmarks)
-    peace = is_peace_sign(landmarks)
-    
-    # Rotation gestures (based on finger configuration, position-independent)
-    if peace:
-        # Peace sign = clockwise rotation
-        return "CW_ROTATE"
-    
-    if palm and hand_y_delta < -0.03:
-        # Open palm moving upward = counter-clockwise rotation
-        return "CCW_ROTATE"
-    
-    # Movement gestures (based on hand position)
-    if fist:
-        if hand_x < HAND_X_LEFT_THRESHOLD:
-            return "LEFT"
-        elif hand_x > HAND_X_RIGHT_THRESHOLD:
-            return "RIGHT"
-    
-    # Drop gesture (open palm or quick downward movement)
-    if palm and hand_y_delta > 0.025:
-        return "DOWN"
-    
-    return None
+    def detect_gesture(self, landmarks, previous_landmarks, hand_x, hand_y_delta):
+        """
+        Detect gesture with proper debouncing.
+        Returns gesture only when:
+        1. Gesture is different from last one, OR
+        2. Last gesture was reset (fist made), OR
+        3. Enough time has passed
+        """
+        fist = is_fist(landmarks)
+        palm = is_open_palm(landmarks)
+        peace = is_peace_sign(landmarks)
+        
+        current_time = time.time()
+        time_since_last = current_time - self.last_gesture_time
+        
+        # If we need a reset and user makes a fist, allow next gesture
+        if self.required_reset and fist:
+            self.required_reset = False
+            self.gesture_active = False
+            return None  # Don't trigger on the reset fist itself
+        
+        # If we're already in a gesture, don't trigger another rotation/drop until reset
+        if self.gesture_active and self.required_reset:
+            return None
+        
+        gesture = None
+        
+        # Rotation gestures (require reset between uses)
+        if peace and time_since_last > GESTURE_COOLDOWN:
+            if self.last_gesture != "CW_ROTATE" or not self.gesture_active:
+                gesture = "CW_ROTATE"
+                self.gesture_active = True
+                self.required_reset = True
+        
+        if palm and hand_y_delta < -0.03 and time_since_last > GESTURE_COOLDOWN:
+            if self.last_gesture != "CCW_ROTATE" or not self.gesture_active:
+                gesture = "CCW_ROTATE"
+                self.gesture_active = True
+                self.required_reset = True
+        
+        # Movement gestures (can repeat continuously while holding position)
+        if fist and time_since_last > GESTURE_COOLDOWN:
+            if hand_x < HAND_X_LEFT_THRESHOLD:
+                gesture = "LEFT"
+                self.gesture_active = False  # Allow repeated movement
+                self.required_reset = False
+            elif hand_x > HAND_X_RIGHT_THRESHOLD:
+                gesture = "RIGHT"
+                self.gesture_active = False  # Allow repeated movement
+                self.required_reset = False
+        
+        # Drop gesture (can repeat continuously)
+        if palm and hand_y_delta > 0.025 and time_since_last > GESTURE_COOLDOWN:
+            if self.last_gesture != "DOWN" or not self.gesture_active:
+                gesture = "DOWN"
+                # Don't lock this one, allow repeated drops
+        
+        # Update state if gesture triggered
+        if gesture:
+            self.last_gesture = gesture
+            self.last_gesture_time = current_time
+        
+        return gesture
 
+
+# Global gesture state
+gesture_state = GestureState()
 
 # ============================================================================
 # WEBCAM & GESTURE CAPTURE
@@ -190,7 +227,6 @@ def gesture_detection(landmarks, previous_landmarks, hand_x, hand_y_delta):
 
 cap = cv.VideoCapture(0)
 previous_landmarks = None
-last_gesture_time = 0
 
 
 def get_gesture():
@@ -198,7 +234,7 @@ def get_gesture():
     Capture camera frame and detect hand gesture.
     Returns: (gesture_string, annotated_frame)
     """
-    global previous_landmarks, last_gesture_time
+    global previous_landmarks
     
     if not cap.isOpened():
         print("Error: Could not open camera")
@@ -220,9 +256,11 @@ def get_gesture():
     # Draw landmarks
     annotated_image, landmarks = draw_landmarks_on_image(rgb_frame, detection_result)
     
-    # If no hand detected, reset and return
+    # If no hand detected, reset state and return
     if landmarks is None:
         previous_landmarks = None
+        gesture_state.gesture_active = False
+        gesture_state.required_reset = False
         webcam_frame = cv.cvtColor(annotated_image, cv.COLOR_RGB2BGR)
         return None, webcam_frame
     
@@ -230,19 +268,19 @@ def get_gesture():
     hand_x = landmarks[WRIST].x
     hand_y_delta = get_hand_height_change(landmarks, previous_landmarks)
     
-    # Detect gesture
-    gesture = gesture_detection(landmarks, previous_landmarks, hand_x, hand_y_delta)
+    # Detect gesture using state machine
+    gesture = gesture_state.detect_gesture(landmarks, previous_landmarks, hand_x, hand_y_delta)
     
-    # Apply cooldown to prevent rapid firing
-    current_time = time.time()
-    output_gesture = None
-    if gesture and (current_time - last_gesture_time) > GESTURE_COOLDOWN:
-        output_gesture = gesture
-        last_gesture_time = current_time
-        
-        # Draw detected gesture on screen
+    # Draw detected gesture on screen
+    if gesture:
+        color = (0, 255, 0) if gesture in ["LEFT", "RIGHT", "DOWN"] else (255, 165, 0)
         cv.putText(annotated_image, f"GESTURE: {gesture}", (20, 50),
-                   cv.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
+                    cv.FONT_HERSHEY_SIMPLEX, 1.2, color, 2)
+    
+    # Show current gesture state for debugging
+    if gesture_state.required_reset:
+        cv.putText(annotated_image, "Make a FIST to reset", (20, 100),
+                    cv.FONT_HERSHEY_SIMPLEX, 0.8, (0, 165, 255), 2)
     
     # Convert back to BGR for display
     webcam_frame = cv.cvtColor(annotated_image, cv.COLOR_RGB2BGR)
@@ -250,7 +288,7 @@ def get_gesture():
     # Update previous landmarks
     previous_landmarks = landmarks
     
-    return output_gesture, webcam_frame
+    return gesture, webcam_frame
 
 
 def cleanup():
